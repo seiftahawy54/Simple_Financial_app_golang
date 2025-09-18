@@ -4,21 +4,13 @@ import (
 	"encoding/json"
 	"finance_app/src/models"
 	"finance_app/src/repositories"
+	"finance_app/src/utils/types"
 	"net/http"
 	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/sirupsen/logrus"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 )
-
-// Response structures for consistent API responses
-type APIResponse struct {
-	Success bool        `json:"success"`
-	Message string      `json:"message,omitempty"`
-	Data    interface{} `json:"data,omitempty"`
-	Error   string      `json:"error,omitempty"`
-}
 
 // Request structure for creating/updating transactions
 type CreateTransactionRequest struct {
@@ -29,11 +21,12 @@ type CreateTransactionRequest struct {
 }
 
 type TransactionHandler struct {
-	Repo repositories.TransactionMongoRepository
+	Repo         repositories.TransactionMongoRepository
+	AccountsRepo repositories.AccountsMongoRepository
 }
 
 // Helper function to send JSON responses
-func sendJSONResponse(w http.ResponseWriter, status int, response APIResponse) {
+func sendJSONResponse(w http.ResponseWriter, status int, response types.APIResponse) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	if err := json.NewEncoder(w).Encode(response); err != nil {
@@ -48,14 +41,14 @@ func (h *TransactionHandler) GetAllTransactions(w http.ResponseWriter, r *http.R
 	transactions, err := h.Repo.GetAllTransactions(ctx)
 	if err != nil {
 		logrus.Error("Failed to get transactions: ", err)
-		sendJSONResponse(w, http.StatusInternalServerError, APIResponse{
+		sendJSONResponse(w, http.StatusInternalServerError, types.APIResponse{
 			Success: false,
 			Error:   "Failed to fetch transactions",
 		})
 		return
 	}
 
-	sendJSONResponse(w, http.StatusOK, APIResponse{
+	sendJSONResponse(w, http.StatusOK, types.APIResponse{
 		Success: true,
 		Data:    transactions,
 		Message: "Transactions fetched successfully",
@@ -69,7 +62,7 @@ func (h *TransactionHandler) CreateTransaction(w http.ResponseWriter, r *http.Re
 	// Parse request body
 	var req CreateTransactionRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		sendJSONResponse(w, http.StatusBadRequest, APIResponse{
+		sendJSONResponse(w, http.StatusBadRequest, types.APIResponse{
 			Success: false,
 			Error:   "Invalid request body",
 		})
@@ -77,14 +70,30 @@ func (h *TransactionHandler) CreateTransaction(w http.ResponseWriter, r *http.Re
 	}
 
 	// Validate and parse account ID
-	accountObjID, err := primitive.ObjectIDFromHex(req.AccountId)
+	account, err := h.AccountsRepo.FindOne(ctx, req.AccountId)
 	if err != nil {
-		sendJSONResponse(w, http.StatusBadRequest, APIResponse{
+		sendJSONResponse(w, http.StatusBadRequest, types.APIResponse{
 			Success: false,
-			Error:   "Invalid account ID format",
+			Error:   "Account not found",
 		})
 		return
 	}
+
+	accountObjID := account.ID
+	transactionType := models.TransactionType(strings.ToUpper(req.TransactionType))
+	switch transactionType {
+	case models.Deposit:
+		account.Balance += req.Amount
+	case models.Withdraw:
+		account.Balance -= req.Amount
+	default:
+		sendJSONResponse(w, http.StatusBadRequest, types.APIResponse{
+			Success: false,
+			Error:   "Invalid transaction type",
+		})
+	}
+
+	err = h.AccountsRepo.UpdateBalance(ctx, accountObjID.String(), account.Balance)
 
 	// Create transaction model
 	transaction := &models.Transaction{
@@ -97,14 +106,14 @@ func (h *TransactionHandler) CreateTransaction(w http.ResponseWriter, r *http.Re
 	// Save to database
 	if err := h.Repo.Create(ctx, transaction); err != nil {
 		logrus.Error("Failed to create transaction: ", err)
-		sendJSONResponse(w, http.StatusBadRequest, APIResponse{
+		sendJSONResponse(w, http.StatusBadRequest, types.APIResponse{
 			Success: false,
 			Error:   err.Error(),
 		})
 		return
 	}
 
-	sendJSONResponse(w, http.StatusCreated, APIResponse{
+	sendJSONResponse(w, http.StatusCreated, types.APIResponse{
 		Success: true,
 		Data:    transaction,
 		Message: "Transaction created successfully",
@@ -117,7 +126,7 @@ func (h *TransactionHandler) GetTransactionByID(w http.ResponseWriter, r *http.R
 	transactionID := chi.URLParam(r, "id")
 
 	if transactionID == "" {
-		sendJSONResponse(w, http.StatusBadRequest, APIResponse{
+		sendJSONResponse(w, http.StatusBadRequest, types.APIResponse{
 			Success: false,
 			Error:   "Transaction ID is required",
 		})
@@ -127,21 +136,21 @@ func (h *TransactionHandler) GetTransactionByID(w http.ResponseWriter, r *http.R
 	transaction, err := h.Repo.GetByID(ctx, transactionID)
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
-			sendJSONResponse(w, http.StatusNotFound, APIResponse{
+			sendJSONResponse(w, http.StatusNotFound, types.APIResponse{
 				Success: false,
 				Error:   "Transaction not found",
 			})
 			return
 		}
 		logrus.Error("Failed to get transaction: ", err)
-		sendJSONResponse(w, http.StatusInternalServerError, APIResponse{
+		sendJSONResponse(w, http.StatusInternalServerError, types.APIResponse{
 			Success: false,
 			Error:   "Failed to fetch transaction",
 		})
 		return
 	}
 
-	sendJSONResponse(w, http.StatusOK, APIResponse{
+	sendJSONResponse(w, http.StatusOK, types.APIResponse{
 		Success: true,
 		Data:    transaction,
 		Message: "Transaction fetched successfully",
@@ -154,7 +163,7 @@ func (h *TransactionHandler) GetTransactionsByAccountID(w http.ResponseWriter, r
 	accountID := chi.URLParam(r, "accountId")
 
 	if accountID == "" {
-		sendJSONResponse(w, http.StatusBadRequest, APIResponse{
+		sendJSONResponse(w, http.StatusBadRequest, types.APIResponse{
 			Success: false,
 			Error:   "Account ID is required",
 		})
@@ -164,21 +173,21 @@ func (h *TransactionHandler) GetTransactionsByAccountID(w http.ResponseWriter, r
 	transactions, err := h.Repo.GetByAccountID(ctx, accountID)
 	if err != nil {
 		if strings.Contains(err.Error(), "invalid account ID") {
-			sendJSONResponse(w, http.StatusBadRequest, APIResponse{
+			sendJSONResponse(w, http.StatusBadRequest, types.APIResponse{
 				Success: false,
 				Error:   "Invalid account ID format",
 			})
 			return
 		}
 		logrus.Error("Failed to get transactions for account: ", err)
-		sendJSONResponse(w, http.StatusInternalServerError, APIResponse{
+		sendJSONResponse(w, http.StatusInternalServerError, types.APIResponse{
 			Success: false,
 			Error:   "Failed to fetch transactions",
 		})
 		return
 	}
 
-	sendJSONResponse(w, http.StatusOK, APIResponse{
+	sendJSONResponse(w, http.StatusOK, types.APIResponse{
 		Success: true,
 		Data:    transactions,
 		Message: "Transactions fetched successfully",

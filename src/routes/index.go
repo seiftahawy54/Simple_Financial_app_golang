@@ -55,5 +55,9 @@ func Routes(router chi.Router, h *handlers.AppHandler) {
 			sub.Get("/{id}", h.TransactionService.GetTransactionByID)
 			sub.Get("/account/{accountId}", h.TransactionService.GetTransactionsByAccountID)
 		})
+
+		r.Route("/accounts", func(sub chi.Router) {
+			sub.Get("/", h.AccountService.GetAllAccounts)
+		})
 	})
 }

@@ -9,7 +9,6 @@ const (
 	Deposit  TransactionType = "DEPOSIT"
 	Withdraw TransactionType = "WITHDRAW"
 	Transfer TransactionType = "TRANSFER"
-	// Add more as needed
 )
 
 // Transaction model based on schema
