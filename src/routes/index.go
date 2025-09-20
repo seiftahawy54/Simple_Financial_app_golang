@@ -58,6 +58,8 @@ func Routes(router chi.Router, h *handlers.AppHandler) {
 
 		r.Route("/accounts", func(sub chi.Router) {
 			sub.Get("/", h.AccountService.GetAllAccounts)
+			sub.Post("/", h.AccountService.CreateAccount)
+			sub.Get("/{id}", h.AccountService.GetAccountByID)
 		})
 	})
 }

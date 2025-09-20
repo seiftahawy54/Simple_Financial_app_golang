@@ -31,3 +31,5 @@ go.work
 .mongo_data
 
 .idea
+.vscode
+tmp

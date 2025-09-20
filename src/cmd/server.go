@@ -46,9 +46,10 @@ func main() {
 	// Initialize database and repository
 	db := client.Database("finance_db")
 	transactionRepo := repositories.NewTransactionMongoRepository(db)
+	accountsRepo := repositories.NewAccountsMongoRepository(db)
 
 	// Create handler with dependencies
-	h := handlers.NewAppHandler(client, *transactionRepo)
+	h := handlers.NewAppHandler(client, *transactionRepo, *accountsRepo)
 
 	// Setup router
 	router := chi.NewRouter()
