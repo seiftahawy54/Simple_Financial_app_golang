@@ -70,7 +70,8 @@ func (h *AccountHandler) CreateAccount(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		utils.SendJSONResponse(w, http.StatusBadRequest, types.APIResponse{
 			Success: false,
-			Error:   "Failed to create account",
+			Error:   err.Error(),
+			Data:    account,
 		})
 		return
 	}

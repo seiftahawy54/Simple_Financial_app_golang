@@ -70,7 +70,7 @@ func (r *AccountsMongoRepository) UpdateBalance(ctx context.Context, id string, 
 func (r *AccountsMongoRepository) GetAllAccounts(ctx context.Context) ([]models.Accounts, error) {
 	var accounts []models.Accounts
 
-	opts := options.Find().SetSort(bson.D{{"created_at", -1}})
+	opts := options.Find().SetSort(bson.D{{Key: "createdAt", Value: -1}})
 
 	cursor, err := r.collection.Find(ctx, bson.M{}, opts)
 
@@ -94,6 +94,7 @@ func (r *AccountsMongoRepository) CreateAccount(ctx context.Context, account *mo
 	err := r.collection.FindOne(ctx, bson.M{"email": account.Email}).Decode(&oldAccount)
 
 	if err == nil && oldAccount != nil {
+		account.ID = oldAccount.ID
 		return errors.New("account with this email already exists")
 	}
 

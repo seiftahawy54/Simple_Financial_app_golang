@@ -55,7 +55,7 @@ func (h *TransactionHandler) CreateTransaction(w http.ResponseWriter, r *http.Re
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		utils.SendJSONResponse(w, http.StatusBadRequest, types.APIResponse{
 			Success: false,
-			Error:   "Invalid request body",
+			Error:   err.Error(),
 		})
 		return
 	}
@@ -111,9 +111,34 @@ func (h *TransactionHandler) CreateTransaction(w http.ResponseWriter, r *http.Re
 		return
 	}
 
+	updatedAccount, err := h.AccountsRepo.FindOne(ctx, accountId)
+
+	if err != nil {
+		logrus.Error("Failed to fetch updated account: ", err)
+		utils.SendJSONResponse(w, http.StatusInternalServerError, types.APIResponse{
+			Success: false,
+			Error:   "Failed to fetch updated account",
+		})
+		return
+	}
+
+	transactionsForTheUser, err := h.TransactionsRepo.GetByAccountID(ctx, accountId)
+
+	if err != nil {
+		logrus.Error("Failed to fetch transactions for the user: ", err)
+		utils.SendJSONResponse(w, http.StatusInternalServerError, types.APIResponse{
+			Success: false,
+			Error:   "Failed to fetch transactions for the user",
+		})
+		return
+	}
+
 	utils.SendJSONResponse(w, http.StatusCreated, types.APIResponse{
 		Success: true,
-		Data:    transaction,
+		Data: map[string]interface{}{
+			"transactions": transactionsForTheUser,
+			"account":      updatedAccount,
+		},
 		Message: "Transaction created successfully",
 	})
 }

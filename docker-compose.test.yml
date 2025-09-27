@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:latest
+    container_name: finance_test_mongodb
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: finance_test_db
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - finance_test_network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.runCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  finance_app_test:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    container_name: finance_app_test
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    environment:
+      - TEST_MONGO_URI=mongodb://mongodb:27017
+      - TEST_DATABASE=finance_test_db
+      - VERBOSE=true
+    volumes:
+      - .:/app
+    working_dir: /app
+    command: ./tests/run_integration_tests.sh -v
+    networks:
+      - finance_test_network
+
+volumes:
+  mongodb_data:
+
+networks:
+  finance_test_network:
+    driver: bridge
+
