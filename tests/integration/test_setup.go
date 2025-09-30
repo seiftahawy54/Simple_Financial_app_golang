@@ -10,7 +10,6 @@ import (
 	"finance_app/src/handlers"
 	"finance_app/src/repositories"
 	"finance_app/src/routes"
-	"finance_app/src/utils"
 
 	"github.com/go-chi/chi/v5"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -106,7 +105,7 @@ func (ts *TestSuite) CleanupCollections(t *testing.T, collections ...string) {
 // connectToTestMongo connects to test MongoDB instance
 func connectToTestMongo(uri string) (*mongo.Client, error) {
 	clientOptions := options.Client().ApplyURI(uri)
-	
+
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
@@ -139,10 +138,9 @@ func SkipIfNoMongo(t *testing.T) {
 	if err != nil {
 		t.Skipf("Skipping test: MongoDB not available at %s: %v", uri, err)
 	}
-	
+
 	// Clean up test connection
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	client.Disconnect(ctx)
 }
-

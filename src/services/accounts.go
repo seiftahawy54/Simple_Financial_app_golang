@@ -59,6 +59,23 @@ func (h *AccountHandler) CreateAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Validate required fields
+	if req.Name == "" {
+		utils.SendJSONResponse(w, http.StatusBadRequest, types.APIResponse{
+			Success: false,
+			Error:   "Name is required",
+		})
+		return
+	}
+
+	if req.Email == "" {
+		utils.SendJSONResponse(w, http.StatusBadRequest, types.APIResponse{
+			Success: false,
+			Error:   "Email is required",
+		})
+		return
+	}
+
 	account := models.Accounts{
 		Balance: req.Balance,
 		Name:    req.Name,

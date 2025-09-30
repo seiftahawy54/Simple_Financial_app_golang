@@ -55,7 +55,24 @@ func (h *TransactionHandler) CreateTransaction(w http.ResponseWriter, r *http.Re
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		utils.SendJSONResponse(w, http.StatusBadRequest, types.APIResponse{
 			Success: false,
-			Error:   err.Error(),
+			Error:   "Invalid request body",
+		})
+		return
+	}
+
+	// Validate required fields
+	if req.AccountId == "" {
+		utils.SendJSONResponse(w, http.StatusBadRequest, types.APIResponse{
+			Success: false,
+			Error:   "account ID cannot be empty",
+		})
+		return
+	}
+
+	if req.Amount <= 0 {
+		utils.SendJSONResponse(w, http.StatusBadRequest, types.APIResponse{
+			Success: false,
+			Error:   "amount must be greater than 0",
 		})
 		return
 	}
@@ -82,6 +99,7 @@ func (h *TransactionHandler) CreateTransaction(w http.ResponseWriter, r *http.Re
 			Success: false,
 			Error:   "Invalid transaction type",
 		})
+		return
 	}
 
 	err = h.AccountsRepo.UpdateBalance(ctx, accountId, account.Balance)

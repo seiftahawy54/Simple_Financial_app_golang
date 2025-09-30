@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"time"
 
 	"finance_app/src/models"
 	"finance_app/src/utils/types"
@@ -208,7 +207,6 @@ func TestTransactionIntegration(t *testing.T) {
 
 		// Create test account
 		account := createTestAccount("John Doe", "john@example.com", 1000.0)
-		accountID := account.ID.Hex()
 
 		// Create test transactions
 		transactions := []*models.Transaction{
@@ -379,7 +377,6 @@ func TestTransactionIntegration(t *testing.T) {
 		err = json.Unmarshal(w.Body.Bytes(), &response)
 		require.NoError(t, err)
 		assert.False(t, response.Success)
-		assert.Contains(t, response.Error, "Invalid request body")
+		assert.Contains(t, response.Error, "account ID cannot be empty")
 	})
 }
-

@@ -8,14 +8,12 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"time"
 
 	"finance_app/src/models"
 	"finance_app/src/utils/types"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 func TestAccountIntegration(t *testing.T) {
@@ -32,9 +30,9 @@ func TestAccountIntegration(t *testing.T) {
 
 		// Test data
 		accountData := map[string]interface{}{
-			"name":            "John Doe",
-			"email":           "john.doe@example.com",
-			"initialBalance":  1000.0,
+			"name":           "John Doe",
+			"email":          "john.doe@example.com",
+			"initialBalance": 1000.0,
 		}
 
 		// Create request
@@ -72,9 +70,9 @@ func TestAccountIntegration(t *testing.T) {
 
 		// Create first account
 		accountData := map[string]interface{}{
-			"name":            "John Doe",
-			"email":           "john.doe@example.com",
-			"initialBalance":  1000.0,
+			"name":           "John Doe",
+			"email":          "john.doe@example.com",
+			"initialBalance": 1000.0,
 		}
 
 		jsonData, err := json.Marshal(accountData)
@@ -227,7 +225,6 @@ func TestAccountIntegration(t *testing.T) {
 		err = json.Unmarshal(w.Body.Bytes(), &response)
 		require.NoError(t, err)
 		assert.False(t, response.Success)
-		assert.Contains(t, response.Error, "Invalid request body")
+		assert.Contains(t, response.Error, "Email is required")
 	})
 }
-

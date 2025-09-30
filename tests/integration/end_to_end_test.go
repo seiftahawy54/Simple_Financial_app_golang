@@ -2,15 +2,12 @@ package integration
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"time"
 
-	"finance_app/src/models"
 	"finance_app/src/utils/types"
 
 	"github.com/stretchr/testify/assert"
@@ -32,9 +29,9 @@ func TestEndToEndWorkflow(t *testing.T) {
 		// Step 1: Create an account
 		t.Log("Step 1: Creating account...")
 		accountData := map[string]interface{}{
-			"name":            "Alice Johnson",
-			"email":           "alice.johnson@example.com",
-			"initialBalance":  1000.0,
+			"name":           "Alice Johnson",
+			"email":          "alice.johnson@example.com",
+			"initialBalance": 1000.0,
 		}
 
 		jsonData, err := json.Marshal(accountData)
